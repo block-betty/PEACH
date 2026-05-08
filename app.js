@@ -1785,14 +1785,14 @@
       ],
       theme: {
         logoPath: "assets/peach-logo.png",
-        primary: "#24307f",
-        secondary: "#111a52",
-        gold: "#d8b53d",
-        red: "#c83b3f",
-        green: "#198b44",
-        bgStart: "#edf1ff",
-        bgEnd: "#f5f1e2",
-        text: "#161f3f"
+        primary: "#2e3da5",
+        secondary: "#1a2470",
+        gold: "#e6c252",
+        red: "#ec5d61",
+        green: "#3bce74",
+        bgStart: "#060c22",
+        bgEnd: "#14110a",
+        text: "#e8edff"
       },
       lockTypes: [
         {
