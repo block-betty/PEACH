@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PEACH</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <form class="login-card" id="loginForm" autocomplete="off">
+      <img class="login-logo" src="assets/peach-logo.png" alt="PEACH logo">
+      <h2 id="loginTitle">PEACH</h2>
+      <p class="login-tagline">Protected Equipment Access Control Hub</p>
+      <label class="login-field">
+        Administrator Password
+        <input id="loginPassword" type="password" required autofocus>
+      </label>
+      <p class="login-error" id="loginError" role="alert" hidden>Incorrect password.</p>
+      <button type="submit" class="btn-primary login-btn">Unlock Application</button>
+      <p class="login-note">Authorized use only. Activity is recorded in the audit log.</p>
+    </form>
+  </div>
+
+  <aside class="sidebar" aria-label="Primary Navigation">
+    <div class="sidebar-brand">
+      <img id="sidebarLogo" class="sidebar-logo" src="assets/peach-logo.png" alt="PEACH logo">
+      <div class="sidebar-wordmark">PEACH</div>
+      <div class="sidebar-tagline" id="sidebarTagline">Protected Equipment Access Control Hub</div>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Toolbar">
+      <button type="button" class="nav-btn" id="peachDashboardBtn">
+        PEACH Dashboard
+      </button>
+      <button type="button" class="nav-btn" data-open-modal="lockEventModal">
+        Create Lock Event
+      </button>
+      <button type="button" class="nav-btn" data-open-modal="equipmentModal">
+        Manage Master Equipment List
+      </button>
+      <button type="button" class="nav-btn" data-open-modal="checkoutModal">
+        Check Out Lock
+      </button>
+      <button type="button" class="nav-btn" data-open-modal="usersModal">
+        Manage Users
+      </button>
+      <button type="button" class="nav-btn" data-open-modal="reportsModal">
+        Reports
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button type="button" class="nav-btn lock-btn" id="lockAppBtn">Lock Application</button>
+      <span class="sidebar-footer-label">PEACH &mdash; LOTO Tracker</span>
+    </div>
+  </aside>
+
+  <main class="app">
+    <section class="banner" aria-label="Application Header">
+      <div class="brand">
+        <img id="appLogo" class="brand-logo" src="assets/peach-logo.png" alt="PEACH logo">
+        <div class="brand-copy">
+          <p class="brand-kicker" id="appKicker"></p>
+          <h1 id="appTitle">PEACH</h1>
+          <p class="subtitle" id="appSubtitle"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="dashboard-summary" aria-label="Dashboard Summary">
+      <article class="panel">
+        <h3>At a Glance</h3>
+        <div class="stats" id="statsGrid"></div>
+      </article>
+
+      <article class="panel">
+        <h3>Locks by Building</h3>
+        <p class="panel-note">Active lock events grouped by building, counted by lock color. Empty buildings are hidden.</p>
+        <div id="locksByBuilding"></div>
+      </article>
+
+      <article class="panel">
+        <h3>Locks by Department</h3>
+        <p class="panel-note">Active lock events grouped by the assigned user's department. Free-text names that do not match the user index appear under "Unassigned."</p>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Department</th>
+                <th>Active Locks</th>
+              </tr>
+            </thead>
+            <tbody id="locksByDepartmentBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="dashboard">
+      <article class="panel">
+        <h3>Active Lock Dashboard</h3>
+        <p class="panel-note">Remove lock only when safe condition is verified.</p>
+        <div class="cards" id="activeCards"></div>
+      </article>
+
+      <article class="panel">
+        <h3>Quick Notes</h3>
+        <p class="panel-note" id="quickNotesText"></p>
+      </article>
+    </section>
+
+    <section class="history-area">
+      <article class="panel">
+        <h3>Completed Lock Catalog</h3>
+        <p class="panel-note">
+          Locks removed from the dashboard are preserved here with removal details.
+        </p>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Equipment</th>
+                <th>Type</th>
+                <th>Locked By / When</th>
+                <th>Removed By / When</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h3>Audit Log</h3>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp (UTC)</th>
+                <th>Action</th>
+                <th>Actor</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <!-- Create Lock Event Modal -->
+  <div class="modal" id="lockEventModal" role="dialog" aria-modal="true" aria-labelledby="lockEventModalTitle">
+    <div class="dialog dialog-wide">
+      <header class="dialog-head">
+        <h3 id="lockEventModalTitle">Create Lock Event</h3>
+        <button type="button" class="dialog-close" data-close-modal="lockEventModal" aria-label="Close">&times;</button>
+      </header>
+      <div class="dialog-body">
+        <p class="panel-note" id="lockSectionNote"></p>
+        <form id="lockForm">
+          <div class="field-grid">
+            <label class="full">
+              Equipment
+              <select id="lockEquipment" required></select>
+            </label>
+            <label>
+              Locked Out By
+              <input id="lockBy" required placeholder="Employee name or ID">
+            </label>
+            <label>
+              Lock Timestamp
+              <input id="lockWhen" type="datetime-local" required>
+            </label>
+            <label>
+              Expected Removal Date
+              <input id="lockExpectedRemoval" type="datetime-local" required>
+            </label>
+            <label class="full">
+              Lock Reason
+              <textarea id="lockReason" required placeholder="Reason equipment is locked out"></textarea>
+            </label>
+          </div>
+
+          <div>
+            <span class="panel-note">Lock Type</span>
+            <div class="radio-row" id="lockTypeOptions"></div>
+          </div>
+
+          <div>
+            <span class="panel-note">Safety Verification</span>
+            <div class="checks" id="applySafetyChecks"></div>
+          </div>
+
+          <div class="btn-row">
+            <button type="submit" class="btn-primary">Apply Lock</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Master Equipment List Modal -->
+  <div class="modal" id="equipmentModal" role="dialog" aria-modal="true" aria-labelledby="equipmentModalTitle">
+    <div class="dialog dialog-wide">
+      <header class="dialog-head">
+        <h3 id="equipmentModalTitle">Manage Master Equipment List</h3>
+        <button type="button" class="dialog-close" data-close-modal="equipmentModal" aria-label="Close">&times;</button>
+      </header>
+      <div class="dialog-body">
+        <p class="panel-note" id="equipmentSectionNote"></p>
+        <form id="equipmentForm">
+          <div class="field-grid">
+            <label>
+              Building
+              <select id="eqBuilding" name="building" required></select>
+            </label>
+            <label>
+              Equipment Class
+              <select id="eqClass" name="equipmentClass" required></select>
+            </label>
+            <label>
+              Equipment Name
+              <input id="eqName" name="name" required placeholder="Hydraulic Press #4">
+            </label>
+            <label class="full">
+              Description
+              <textarea id="eqDescription" name="description" required placeholder="Short equipment description and critical notes"></textarea>
+            </label>
+            <label>
+              Asset Number
+              <input id="eqAsset" name="assetNumber" required placeholder="Asset-0001">
+            </label>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn-primary">Add Equipment</button>
+          </div>
+        </form>
+
+        <div class="equipment-tools">
+          <label class="filter-field">
+            Filter By Building
+            <select id="equipmentFilter"></select>
+          </label>
+          <div class="btn-row">
+            <button type="button" class="btn-secondary" id="uploadEquipmentExcel">
+              Mass Upload Equipment (Excel)
+            </button>
+            <input type="file" id="equipmentExcelFile" accept=".xlsx,.xls" hidden>
+          </div>
+          <p class="panel-note compact">
+            Upload Excel columns: <strong>Building</strong>, <strong>Class</strong>,
+            <strong>Name</strong>, <strong>Description</strong>, <strong>Asset Number</strong>.
+            Existing rows are updated by asset number.
+          </p>
+        </div>
+
+        <div class="list-wrap" aria-label="Master Equipment Table">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset #</th>
+                <th>Class</th>
+                <th>Name</th>
+                <th>Building</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody id="equipmentTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Check Out Lock Modal -->
+  <div class="modal" id="checkoutModal" role="dialog" aria-modal="true" aria-labelledby="checkoutModalTitle">
+    <div class="dialog dialog-wide">
+      <header class="dialog-head">
+        <h3 id="checkoutModalTitle">Check Out Lock</h3>
+        <button type="button" class="dialog-close" data-close-modal="checkoutModal" aria-label="Close">&times;</button>
+      </header>
+      <div class="dialog-body">
+        <p class="panel-note">
+          Issue a physical lock to an authorized user. Track returns and view per-user assignment counts below.
+        </p>
+
+        <form id="checkoutForm">
+          <div class="field-grid">
+            <label class="full">
+              Lock Color
+              <div class="color-radio-group" id="checkoutColorOptions"></div>
+            </label>
+            <label>
+              Lock Number
+              <input id="checkoutNumber" required placeholder="e.g. 0421">
+            </label>
+            <label>
+              Issue To User
+              <select id="checkoutUser" required></select>
+            </label>
+            <label>
+              Date of Issue
+              <input id="checkoutDate" type="datetime-local" required>
+            </label>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn-primary">Check Out Lock</button>
+          </div>
+        </form>
+
+        <h4 class="section-divider">User Assignment Dashboard</h4>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Type</th>
+                <th>Locks Assigned</th>
+              </tr>
+            </thead>
+            <tbody id="userAssignmentBody"></tbody>
+          </table>
+        </div>
+
+        <h4 class="section-divider">Currently Checked-Out Locks</h4>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Color</th>
+                <th>Number</th>
+                <th>User</th>
+                <th>Issued</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="checkedOutLocksBody"></tbody>
+          </table>
+        </div>
+
+        <h4 class="section-divider">Check-Out / Return History</h4>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Color</th>
+                <th>Number</th>
+                <th>User</th>
+                <th>Issued</th>
+                <th>Returned</th>
+              </tr>
+            </thead>
+            <tbody id="checkoutHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Users Modal -->
+  <div class="modal" id="usersModal" role="dialog" aria-modal="true" aria-labelledby="usersModalTitle">
+    <div class="dialog dialog-wide">
+      <header class="dialog-head">
+        <h3 id="usersModalTitle">Manage Users</h3>
+        <button type="button" class="dialog-close" data-close-modal="usersModal" aria-label="Close">&times;</button>
+      </header>
+      <div class="dialog-body">
+        <p class="panel-note">
+          User index for associating lock events to external personnel. <strong>Administrators</strong>
+          are anyone with the application password (managed separately). Add Authorized Users,
+          Affected Users, and Equipment Controllers below.
+        </p>
+
+        <form id="userForm">
+          <div class="field-grid">
+            <label>
+              User Type
+              <select id="userType" required>
+                <option value="authorized">Authorized User</option>
+                <option value="affected">Affected User</option>
+                <option value="controller">Equipment Controller</option>
+              </select>
+            </label>
+            <label>
+              Call Sign
+              <input id="userCallSign" required placeholder="e.g. Bravo-7">
+            </label>
+            <label>
+              First Name
+              <input id="userFirstName" required>
+            </label>
+            <label>
+              Last Name
+              <input id="userLastName" required>
+            </label>
+            <label>
+              Department
+              <select id="userDepartment" required></select>
+            </label>
+            <label>
+              Supervisor
+              <input id="userSupervisor" required>
+            </label>
+            <label>
+              Phone Number
+              <input id="userPhone" required placeholder="(555) 555-5555">
+            </label>
+            <label>
+              Cell Phone
+              <input id="userCellPhone" required placeholder="(555) 555-5555">
+            </label>
+            <label class="full">
+              LOTO Training Date
+              <input id="userTrainingDate" type="date" required>
+            </label>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn-primary">Add User</button>
+          </div>
+        </form>
+
+        <h4 class="section-divider">User Index</h4>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Name</th>
+                <th>Call Sign</th>
+                <th>Department</th>
+                <th>Supervisor</th>
+                <th>Phone</th>
+                <th>Cell</th>
+                <th>LOTO Training</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reports Modal -->
+  <div class="modal" id="reportsModal" role="dialog" aria-modal="true" aria-labelledby="reportsModalTitle">
+    <div class="dialog dialog-wide">
+      <header class="dialog-head">
+        <h3 id="reportsModalTitle">Reports</h3>
+        <button type="button" class="dialog-close" data-close-modal="reportsModal" aria-label="Close">&times;</button>
+      </header>
+      <div class="dialog-body">
+        <p class="panel-note">Reports refresh each time this view is opened.</p>
+
+        <h4 class="section-divider">1. Overdue LOTO Training</h4>
+        <p class="panel-note compact">Users with a training date older than one year, or with no training date on file.</p>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Call Sign</th>
+                <th>Department</th>
+                <th>Last Training</th>
+                <th>Days Overdue</th>
+              </tr>
+            </thead>
+            <tbody id="reportTrainingBody"></tbody>
+          </table>
+        </div>
+
+        <h4 class="section-divider">2. Aged Locks</h4>
+        <p class="panel-note compact">Active lock events older than 30 days that have not been removed.</p>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Equipment</th>
+                <th>Type</th>
+                <th>Locked By</th>
+                <th>Locked At</th>
+                <th>Age (days)</th>
+              </tr>
+            </thead>
+            <tbody id="reportAgedBody"></tbody>
+          </table>
+        </div>
+
+        <h4 class="section-divider">3. Excessive Locks</h4>
+        <p class="panel-note compact">Users with more than five active lock events (matched against the user index by name).</p>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Department</th>
+                <th>Active Lock Events</th>
+              </tr>
+            </thead>
+            <tbody id="reportExcessiveBody"></tbody>
+          </table>
+        </div>
+
+        <h4 class="section-divider">4. Configuration Warning</h4>
+        <p class="panel-note compact">Buildings with more than ten active lock events.</p>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Building</th>
+                <th>Active Lock Events</th>
+              </tr>
+            </thead>
+            <tbody id="reportConfigBody"></tbody>
+          </table>
+        </div>
+
+        <h4 class="section-divider">5. Lock Collector</h4>
+        <p class="panel-note compact">Users with a green lock checked out for more than three days who have no matching active lock event.</p>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Department</th>
+                <th>Lock Number</th>
+                <th>Issued</th>
+                <th>Days Held</th>
+              </tr>
+            </thead>
+            <tbody id="reportCollectorBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Existing Lock Removal Modal -->
+  <div class="modal" id="removeModal" role="dialog" aria-modal="true" aria-labelledby="removeTitle">
+    <div class="dialog">
+      <header class="dialog-head">
+        <h3 id="removeTitle">Safety Verification Required Before Lock Removal</h3>
+      </header>
+      <div class="dialog-body">
+        <p class="warning" id="removeWarningText"></p>
+        <form id="removeForm">
+          <div class="field-grid">
+            <label>
+              Removed By
+              <input id="removeBy" required placeholder="Employee name or ID">
+            </label>
+            <label>
+              Removal Timestamp
+              <input id="removeWhen" type="datetime-local" required>
+            </label>
+            <label class="full">
+              Removal Notes
+              <textarea id="removeNotes" placeholder="Optional closeout notes"></textarea>
+            </label>
+          </div>
+          <div class="checks" id="removeSafetyChecks"></div>
+          <div class="dialog-foot">
+            <button type="button" class="btn-muted" id="cancelRemove">Cancel</button>
+            <button type="submit" class="btn-danger">Confirm Remove Lock</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
