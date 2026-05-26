@@ -8,18 +8,59 @@
 </head>
 <body>
   <div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
-    <form class="login-card" id="loginForm" autocomplete="off">
+    <div class="login-card">
       <img class="login-logo" src="assets/peach-logo.png" alt="PEACH logo">
       <h2 id="loginTitle">PEACH</h2>
       <p class="login-tagline">Protected Equipment Access Control Hub</p>
-      <label class="login-field">
-        Administrator Password
-        <input id="loginPassword" type="password" required autofocus>
-      </label>
-      <p class="login-error" id="loginError" role="alert" hidden>Incorrect password.</p>
-      <button type="submit" class="btn-primary login-btn">Unlock Application</button>
+      <div class="login-mode-toggle" role="tablist" aria-label="Authentication mode">
+        <button type="button" class="btn-muted active" id="authModeSignIn" role="tab" aria-selected="true">Sign In</button>
+        <button type="button" class="btn-muted" id="authModeSignUp" role="tab" aria-selected="false">Sign Up</button>
+      </div>
+
+      <form id="loginForm" autocomplete="off">
+        <label class="login-field">
+          Email / Admin
+          <input id="loginEmail" type="text" required autofocus autocapitalize="off" spellcheck="false" placeholder="user@domain.com or Admin">
+        </label>
+        <label class="login-field">
+          Password
+          <input id="loginPassword" type="password" required>
+        </label>
+        <button type="submit" class="btn-primary login-btn">Sign In</button>
+      </form>
+
+      <form id="signupForm" autocomplete="off" hidden>
+        <label class="login-field">
+          Full Name
+          <input id="signupName" required placeholder="First Last">
+        </label>
+        <label class="login-field">
+          Email
+          <input id="signupEmail" type="email" required>
+        </label>
+        <label class="login-field">
+          Password
+          <input id="signupPassword" type="password" required placeholder="12+ chars, upper/lower/number/symbol">
+        </label>
+        <label class="login-field">
+          Confirm Password
+          <input id="signupConfirmPassword" type="password" required>
+        </label>
+        <label class="login-field">
+          Requested User Group
+          <select id="signupRole" required></select>
+        </label>
+        <p class="login-note">Role requests above Authorized User require Super Admin approval.</p>
+        <button type="submit" class="btn-primary login-btn">Create Account</button>
+      </form>
+
+      <p class="login-error" id="loginError" role="alert" hidden></p>
+      <p class="login-note" id="loginInfo" hidden></p>
+      <div class="btn-row">
+        <button type="button" class="btn-secondary btn-small" id="resendVerifyBtn" hidden>Resend Verification Email</button>
+      </div>
       <p class="login-note">Authorized use only. Activity is recorded in the audit log.</p>
-    </form>
+    </div>
   </div>
 
   <aside class="sidebar" aria-label="Primary Navigation">
@@ -30,27 +71,47 @@
     </div>
 
     <nav class="sidebar-nav" aria-label="Toolbar">
-      <button type="button" class="nav-btn" id="peachDashboardBtn">
-        PEACH Dashboard
-      </button>
-      <button type="button" class="nav-btn" data-open-modal="lockEventModal">
-        Create Lock Event
-      </button>
-      <button type="button" class="nav-btn" data-open-modal="equipmentModal">
-        Manage Master Equipment List
-      </button>
-      <button type="button" class="nav-btn" data-open-modal="checkoutModal">
-        Check Out Lock
-      </button>
-      <button type="button" class="nav-btn" data-open-modal="usersModal">
-        Manage Users
-      </button>
-      <button type="button" class="nav-btn" data-open-modal="reportsModal">
-        Reports
-      </button>
+      <div class="nav-group">
+        <div class="nav-group-title">Home</div>
+        <button type="button" class="nav-btn" id="peachDashboardBtn" data-capability="view_dashboard">
+          PEACH Dashboard
+        </button>
+        <button type="button" class="nav-btn" data-open-modal="lockEventModal" data-capability="create_lock_event">
+          Create Lock Event
+        </button>
+        <button type="button" class="nav-btn" data-open-modal="checkoutModal" data-capability="checkout_lock">
+          Check Out Lock
+        </button>
+        <button type="button" class="nav-btn" data-open-modal="searchModal" data-capability="search_records">
+          Search Records
+        </button>
+        <button type="button" class="nav-btn" data-open-modal="reportsModal" data-capability="view_reports">
+          Reports
+        </button>
+        <button type="button" class="nav-btn" data-open-modal="helpModal" data-capability="request_help">
+          Send Help Request
+        </button>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Admin</div>
+        <button type="button" class="nav-btn" data-open-modal="equipmentModal" data-capability="manage_equipment_create">
+          Manage Master Equipment List
+        </button>
+        <button type="button" class="nav-btn" data-open-modal="lockMasterModal" data-capability="manage_lock_master_create">
+          Manage Lock Master List
+        </button>
+        <button type="button" class="nav-btn" data-open-modal="locationModal" data-capability="manage_location_create">
+          Manage Location List
+        </button>
+        <button type="button" class="nav-btn" data-open-modal="usersModal" data-capability="manage_users_add">
+          Manage Users
+        </button>
+      </div>
     </nav>
 
     <div class="sidebar-footer">
+      <span class="sidebar-footer-label" id="currentUserLabel">Not signed in</span>
       <button type="button" class="nav-btn lock-btn" id="lockAppBtn">Lock Application</button>
       <span class="sidebar-footer-label">PEACH &mdash; LOTO Tracker</span>
     </div>
@@ -168,7 +229,19 @@
             </label>
             <label>
               Locked Out By
-              <input id="lockBy" required placeholder="Employee name or ID">
+              <select id="lockBy" required></select>
+            </label>
+            <label>
+              Lock Number
+              <input id="lockNumber" required placeholder="e.g. 0421">
+            </label>
+            <label>
+              Link to Lock Master (optional)
+              <select id="lockEventLockId"></select>
+            </label>
+            <label>
+              Lock Location (optional)
+              <select id="lockLocationId"></select>
             </label>
             <label>
               Lock Timestamp
@@ -181,6 +254,10 @@
             <label class="full">
               Lock Reason
               <textarea id="lockReason" required placeholder="Reason equipment is locked out"></textarea>
+            </label>
+            <label class="full">
+              Key Location (Required for Green lock events)
+              <input id="lockKeyLocation" placeholder="Cabinet, safe, control room, or key manager location">
             </label>
           </div>
 
@@ -218,6 +295,14 @@
               <select id="eqBuilding" name="building" required></select>
             </label>
             <label>
+              Location
+              <input id="eqLocation" name="location" required placeholder="Mechanical Yard East">
+            </label>
+            <label>
+              Room Number
+              <input id="eqRoom" name="roomNumber" required placeholder="Room 110 / Roof / Exterior">
+            </label>
+            <label>
               Equipment Class
               <select id="eqClass" name="equipmentClass" required></select>
             </label>
@@ -235,7 +320,8 @@
             </label>
           </div>
           <div class="btn-row">
-            <button type="submit" class="btn-primary">Add Equipment</button>
+            <button type="submit" class="btn-primary" id="equipmentSubmitBtn">Add Equipment</button>
+            <button type="button" class="btn-muted" id="equipmentCancelEditBtn" hidden>Cancel Edit</button>
           </div>
         </form>
 
@@ -252,7 +338,8 @@
           </div>
           <p class="panel-note compact">
             Upload Excel columns: <strong>Building</strong>, <strong>Class</strong>,
-            <strong>Name</strong>, <strong>Description</strong>, <strong>Asset Number</strong>.
+            <strong>Name</strong>, <strong>Description</strong>, <strong>Asset Number</strong>,
+            <strong>Location</strong>, <strong>Room</strong>.
             Existing rows are updated by asset number.
           </p>
         </div>
@@ -265,10 +352,131 @@
                 <th>Class</th>
                 <th>Name</th>
                 <th>Building</th>
+                <th>Location</th>
+                <th>Room</th>
                 <th>Description</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="equipmentTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Lock Master List Modal -->
+  <div class="modal" id="lockMasterModal" role="dialog" aria-modal="true" aria-labelledby="lockMasterModalTitle">
+    <div class="dialog dialog-wide">
+      <header class="dialog-head">
+        <h3 id="lockMasterModalTitle">Manage Lock Master List</h3>
+        <button type="button" class="dialog-close" data-close-modal="lockMasterModal" aria-label="Close">&times;</button>
+      </header>
+      <div class="dialog-body">
+        <p class="panel-note">
+          Register lock inventory so lock events can reference assigned lock numbers and key control details.
+        </p>
+        <form id="lockMasterForm">
+          <div class="field-grid">
+            <label>
+              Lock Number
+              <input id="masterLockNumber" required placeholder="e.g. 0421">
+            </label>
+            <label>
+              Lock Color
+              <select id="masterLockColor" required></select>
+            </label>
+            <label>
+              Building
+              <select id="masterLockBuilding" required></select>
+            </label>
+            <label>
+              Location
+              <input id="masterLockLocation" required placeholder="Electrical Yard North">
+            </label>
+            <label>
+              Room Number
+              <input id="masterLockRoom" required placeholder="Room 2B / Exterior / Roof">
+            </label>
+            <label>
+              Key Location
+              <input id="masterLockKeyLocation" placeholder="Key cabinet / lock box / supervisor desk">
+            </label>
+            <label class="full">
+              Notes
+              <textarea id="masterLockNotes" placeholder="Optional lock-specific constraints or custody notes"></textarea>
+            </label>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn-primary" id="lockMasterSubmitBtn">Add Lock to Master List</button>
+            <button type="button" class="btn-muted" id="lockMasterCancelEditBtn" hidden>Cancel Edit</button>
+          </div>
+        </form>
+
+        <div class="list-wrap" aria-label="Master Lock Table">
+          <table>
+            <thead>
+              <tr>
+                <th>Lock #</th>
+                <th>Color</th>
+                <th>Building</th>
+                <th>Location</th>
+                <th>Room</th>
+                <th>Key Location</th>
+                <th>Notes</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="lockMasterTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Location List Modal -->
+  <div class="modal" id="locationModal" role="dialog" aria-modal="true" aria-labelledby="locationModalTitle">
+    <div class="dialog dialog-wide">
+      <header class="dialog-head">
+        <h3 id="locationModalTitle">Manage Location List</h3>
+        <button type="button" class="dialog-close" data-close-modal="locationModal" aria-label="Close">&times;</button>
+      </header>
+      <div class="dialog-body">
+        <p class="panel-note">
+          Add and maintain lock locations used by Create Lock Event.
+        </p>
+        <form id="locationForm">
+          <div class="field-grid">
+            <label>
+              Building
+              <select id="locationBuilding" required></select>
+            </label>
+            <label>
+              Room
+              <input id="locationRoom" required placeholder="Room 102 / Roof / Exterior">
+            </label>
+            <label class="full">
+              Description
+              <textarea id="locationDescription" required placeholder="Short location description"></textarea>
+            </label>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn-primary" id="locationSubmitBtn">Add Location</button>
+            <button type="button" class="btn-muted" id="locationCancelEditBtn" hidden>Cancel Edit</button>
+          </div>
+        </form>
+
+        <div class="list-wrap" aria-label="Location Master Table">
+          <table>
+            <thead>
+              <tr>
+                <th>Building</th>
+                <th>Room</th>
+                <th>Description</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="locationTableBody"></tbody>
           </table>
         </div>
       </div>
@@ -369,9 +577,9 @@
       </header>
       <div class="dialog-body">
         <p class="panel-note">
-          User index for associating lock events to external personnel. <strong>Administrators</strong>
-          are anyone with the application password (managed separately). Add Authorized Users,
-          Affected Users, and Equipment Controllers below.
+          User index for associating lock events to external personnel. Application account
+          access and user-group roles are managed through email sign-in (Super Admin, Supervisor,
+          Controlling Organization, Authorized User).
         </p>
 
         <form id="userForm">
@@ -539,6 +747,82 @@
     </div>
   </div>
 
+  <!-- Search Records Modal -->
+  <div class="modal" id="searchModal" role="dialog" aria-modal="true" aria-labelledby="searchModalTitle">
+    <div class="dialog dialog-wide">
+      <header class="dialog-head">
+        <h3 id="searchModalTitle">Search Equipment and Lock Numbers</h3>
+        <button type="button" class="dialog-close" data-close-modal="searchModal" aria-label="Close">&times;</button>
+      </header>
+      <div class="dialog-body">
+        <form id="searchForm">
+          <div class="field-grid">
+            <label class="full">
+              Search Term (equipment name, asset #, lock #, location, room)
+              <input id="searchQuery" required placeholder="Enter search term">
+            </label>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn-primary">Search</button>
+          </div>
+        </form>
+        <h4 class="section-divider">Results</h4>
+        <div class="list-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Primary</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="searchResultsBody">
+              <tr><td colspan="3" class="empty">Enter a term to search equipment and lock records.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Request Modal -->
+  <div class="modal" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+    <div class="dialog dialog-wide">
+      <header class="dialog-head">
+        <h3 id="helpModalTitle">Send Admin a Help Request</h3>
+        <button type="button" class="dialog-close" data-close-modal="helpModal" aria-label="Close">&times;</button>
+      </header>
+      <div class="dialog-body">
+        <p class="panel-note">
+          This opens your email client to send a request to <strong>blazer.walker@protonmail.com</strong>.
+        </p>
+        <form id="helpForm">
+          <div class="field-grid">
+            <label>
+              Request Type
+              <select id="helpCategory" required>
+                <option value="Help Request">Help Request</option>
+                <option value="Feature Suggestion">Feature Suggestion</option>
+                <option value="Bug Report">Bug Report</option>
+              </select>
+            </label>
+            <label class="full">
+              Subject
+              <input id="helpSubject" required placeholder="Short summary">
+            </label>
+            <label class="full">
+              Details
+              <textarea id="helpDetails" required placeholder="What do you need help with?"></textarea>
+            </label>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn-primary">Open Email to Admin</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Existing Lock Removal Modal -->
   <div class="modal" id="removeModal" role="dialog" aria-modal="true" aria-labelledby="removeTitle">
     <div class="dialog">
@@ -573,6 +857,9 @@
   </div>
 
   <script src="config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>

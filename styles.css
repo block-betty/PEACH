@@ -34,6 +34,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html,
 body,
 input,
@@ -66,6 +70,7 @@ body {
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
+  overflow-y: auto;
 }
 
 .login-overlay.hidden {
@@ -73,7 +78,8 @@ body {
 }
 
 .login-card {
-  width: min(420px, 95vw);
+  width: min(480px, 96vw);
+  max-height: calc(100vh - 2rem);
   background: var(--panel);
   border: 1px solid var(--line);
   border-top: 5px solid var(--gold);
@@ -85,6 +91,14 @@ body {
   flex-direction: column;
   gap: 0.85rem;
   color: var(--text);
+  overflow-y: auto;
+}
+
+#loginForm,
+#signupForm {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
 }
 
 .login-logo {
@@ -145,6 +159,22 @@ body {
   font-style: italic;
 }
 
+.login-mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.login-mode-toggle .btn-muted {
+  width: 100%;
+}
+
+.login-mode-toggle .btn-muted.active {
+  color: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(230, 194, 82, 0.25) inset;
+}
+
 .lock-btn {
   border-left-color: var(--red) !important;
   margin-bottom: 0.6rem;
@@ -153,11 +183,11 @@ body {
 /* ---------- Sidebar / Toolbar ---------- */
 
 .sidebar {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
-  bottom: 0;
   width: var(--sidebar-w);
+  min-height: 100vh;
   background: linear-gradient(180deg, #04081c 0%, var(--accent-2) 100%);
   color: var(--text-on-dark);
   display: flex;
@@ -213,6 +243,27 @@ body {
   flex: 1;
 }
 
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.nav-group + .nav-group {
+  margin-top: 0.35rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.nav-group-title {
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+  padding: 0 0.15rem;
+}
+
 .nav-btn {
   display: block;
   width: 100%;
@@ -235,6 +286,12 @@ body {
 
 .nav-btn:active {
   transform: translateX(2px);
+}
+
+.nav-btn.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .sidebar-footer {
@@ -1048,6 +1105,10 @@ tbody tr:last-child td {
     flex-wrap: wrap;
     flex: 1 1 100%;
     margin-top: 0.6rem;
+  }
+
+  .nav-group {
+    flex: 1 1 100%;
   }
 
   .nav-btn {

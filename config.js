@@ -6,7 +6,35 @@ window.APP_CONFIG = {
   quickNotes:
     "Use the left toolbar to manage equipment, check out physical locks to users, and maintain the user index. Locks with past expected removal dates are automatically flagged.",
   storageKey: "peachTrackerStateV1",
-  // SHA-256 of the application password. Default = "PeachAdmin6773000".
+  // Local server mode: shared state + local auth endpoints.
+  apiBasePath: "/api",
+  syncPollMs: 15000,
+  // Firebase-backed auth + shared storage (no self-hosted server required).
+  // Fill these values from Firebase Project Settings before production use.
+  firebase: {
+    enabled: false,
+    apiKey: "",
+    authDomain: "",
+    databaseURL: "",
+    projectId: "",
+    appId: "",
+    statePath: "peach/state",
+    usersPath: "peach/auth/users",
+    signupRequestPath: "peach/auth/signupRequests"
+  },
+  authRoles: [
+    { id: "super_admin", label: "Super Admin" },
+    { id: "supervisor", label: "Supervisor" },
+    { id: "controlling_org", label: "Controlling Organization" },
+    { id: "authorized_user", label: "Authorized User" }
+  ],
+  defaultRole: "authorized_user",
+  requireEmailVerification: true,
+  // Optional: seed one or more bootstrap Super Admin accounts by email.
+  // Matching users are auto-assigned the "super_admin" role at login/signup.
+  bootstrapSuperAdmins: [],
+  // SHA-256 of the legacy local password gate. Used only when firebase.enabled = false.
+  // Default legacy password = "PeachAdmin6773000".
   // To rotate: compute SHA-256 of the new password (e.g. `printf '%s' 'newpw' | shasum -a 256`)
   // and replace the hash below. NOTE: client-side gate only — not real authentication.
   passwordHash: "24bc02a4c164394781b3e89f20844846d3ed2b56d34e90442cdbc1113fbbdc7b",
