@@ -1,0 +1,68 @@
+/* ══ spicy module ════════════════════════════════════════════════════
+   A subtle bottom-left toggle. When on: the whole UI flips to Spanish and a
+   hidden <audio> element plays a song; when off: English returns and the
+   song stops. Self-contained — see spicy.js. */
+
+.spicy-toggle{
+  position:fixed;
+  left:14px;
+  bottom:14px;
+  z-index:1002;                 /* above the login overlay (1000) and bg-video toggle (1001) */
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:6px 12px;
+  font:600 10px/1 "Times New Roman", Times, serif;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  color:rgba(232,237,255,.30);
+  background:rgba(6,12,34,.32);
+  border:1px solid rgba(232,237,255,.10);
+  border-radius:999px;
+  cursor:pointer;
+  -webkit-backdrop-filter:blur(6px);
+  backdrop-filter:blur(6px);
+  opacity:.4;
+  user-select:none;
+  transition:color .25s, border-color .25s, background .25s, opacity .25s;
+}
+.spicy-toggle:hover{
+  opacity:1;
+  color:rgba(232,237,255,.85);
+  border-color:rgba(232,237,255,.32);
+  background:rgba(6,12,34,.55);
+}
+.spicy-toggle:focus-visible{
+  outline:1px solid rgba(236,93,97,.7);
+  outline-offset:2px;
+  opacity:1;
+}
+
+.spicy-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:rgba(232,237,255,.25);
+  transition:background .25s, box-shadow .25s;
+}
+
+/* On-state: warm tint + pulsing ember dot. */
+.spicy-toggle[aria-pressed="true"]{
+  opacity:.92;
+  color:#ffd9b0;
+  border-color:rgba(236,93,97,.55);
+  background:rgba(58,12,12,.5);
+}
+.spicy-toggle[aria-pressed="true"] .spicy-dot{
+  background:#ec5d61;
+  box-shadow:0 0 8px rgba(236,93,97,.85);
+  animation:spicyPulse 1.4s ease-in-out infinite;
+}
+@keyframes spicyPulse{
+  0%,100%{ transform:scale(1); opacity:.85; }
+  50%{ transform:scale(1.4); opacity:1; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .spicy-toggle[aria-pressed="true"] .spicy-dot{ animation:none; }
+}

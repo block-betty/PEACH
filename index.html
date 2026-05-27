@@ -4,10 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PEACH</title>
+  <!-- bg-video module: self-contained background-video layer for the login screen.
+       Files live in /bg-video/ — see that directory's README to swap. -->
+  <link rel="stylesheet" href="/bg-video/bg-video.css">
+  <!-- spicy module: subtle bottom-left toggle → Spanish UI + hidden background song. -->
+  <link rel="stylesheet" href="/spicy/spicy.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div id="bg-video-root"></div>
     <div class="login-card">
       <img class="login-logo" src="assets/peach-logo.png" alt="PEACH logo">
       <h2 id="loginTitle">PEACH</h2>
@@ -63,60 +69,6 @@
     </div>
   </div>
 
-  <aside class="sidebar" aria-label="Primary Navigation">
-    <div class="sidebar-brand">
-      <img id="sidebarLogo" class="sidebar-logo" src="assets/peach-logo.png" alt="PEACH logo">
-      <div class="sidebar-wordmark">PEACH</div>
-      <div class="sidebar-tagline" id="sidebarTagline">Protected Equipment Access Control Hub</div>
-    </div>
-
-    <nav class="sidebar-nav" aria-label="Toolbar">
-      <div class="nav-group">
-        <div class="nav-group-title">Home</div>
-        <button type="button" class="nav-btn" id="peachDashboardBtn" data-capability="view_dashboard">
-          PEACH Dashboard
-        </button>
-        <button type="button" class="nav-btn" data-open-modal="lockEventModal" data-capability="create_lock_event">
-          Create Lock Event
-        </button>
-        <button type="button" class="nav-btn" data-open-modal="checkoutModal" data-capability="checkout_lock">
-          Check Out Lock
-        </button>
-        <button type="button" class="nav-btn" data-open-modal="searchModal" data-capability="search_records">
-          Search Records
-        </button>
-        <button type="button" class="nav-btn" data-open-modal="reportsModal" data-capability="view_reports">
-          Reports
-        </button>
-        <button type="button" class="nav-btn" data-open-modal="helpModal" data-capability="request_help">
-          Send Help Request
-        </button>
-      </div>
-
-      <div class="nav-group">
-        <div class="nav-group-title">Admin</div>
-        <button type="button" class="nav-btn" data-open-modal="equipmentModal" data-capability="manage_equipment_create">
-          Manage Master Equipment List
-        </button>
-        <button type="button" class="nav-btn" data-open-modal="lockMasterModal" data-capability="manage_lock_master_create">
-          Manage Lock Master List
-        </button>
-        <button type="button" class="nav-btn" data-open-modal="locationModal" data-capability="manage_location_create">
-          Manage Location List
-        </button>
-        <button type="button" class="nav-btn" data-open-modal="usersModal" data-capability="manage_users_add">
-          Manage Users
-        </button>
-      </div>
-    </nav>
-
-    <div class="sidebar-footer">
-      <span class="sidebar-footer-label" id="currentUserLabel">Not signed in</span>
-      <button type="button" class="nav-btn lock-btn" id="lockAppBtn">Lock Application</button>
-      <span class="sidebar-footer-label">PEACH &mdash; LOTO Tracker</span>
-    </div>
-  </aside>
-
   <main class="app">
     <section class="banner" aria-label="Application Header">
       <div class="brand">
@@ -128,6 +80,58 @@
         </div>
       </div>
     </section>
+
+    <details class="toolbar-drawer">
+      <summary>
+        <span>Toolbar</span>
+        <span class="toolbar-user" id="currentUserLabel">Not signed in</span>
+      </summary>
+      <aside class="sidebar" aria-label="Primary Navigation">
+        <nav class="sidebar-nav" aria-label="Toolbar">
+          <div class="nav-group">
+            <div class="nav-group-title">Home</div>
+            <button type="button" class="nav-btn" id="peachDashboardBtn" data-capability="view_dashboard">
+              PEACH Dashboard
+            </button>
+            <button type="button" class="nav-btn" data-open-modal="lockEventModal" data-capability="create_lock_event">
+              Create Lock Event
+            </button>
+            <button type="button" class="nav-btn" data-open-modal="checkoutModal" data-capability="checkout_lock">
+              Check Out Lock
+            </button>
+            <button type="button" class="nav-btn" data-open-modal="searchModal" data-capability="search_records">
+              Search Records
+            </button>
+            <button type="button" class="nav-btn" data-open-modal="reportsModal" data-capability="view_reports">
+              Reports
+            </button>
+            <button type="button" class="nav-btn" data-open-modal="helpModal" data-capability="request_help">
+              Send Help Request
+            </button>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-group-title">Admin</div>
+            <button type="button" class="nav-btn" data-open-modal="equipmentModal" data-capability="manage_equipment_create">
+              Manage Master Equipment List
+            </button>
+            <button type="button" class="nav-btn" data-open-modal="lockMasterModal" data-capability="manage_lock_master_create">
+              Manage Lock Master List
+            </button>
+            <button type="button" class="nav-btn" data-open-modal="locationModal" data-capability="manage_location_create">
+              Manage Location List
+            </button>
+            <button type="button" class="nav-btn" data-open-modal="usersModal" data-capability="manage_users_add">
+              Manage Users
+            </button>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button type="button" class="nav-btn lock-btn" id="lockAppBtn">Lock Application</button>
+        </div>
+      </aside>
+    </details>
 
     <section class="dashboard-summary" aria-label="Dashboard Summary">
       <article class="panel">
@@ -862,5 +866,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
+  <!-- Background-video loader for the login screen. -->
+  <script defer src="/bg-video/bg-video.js"></script>
+  <!-- "Spicy" easter egg: Spanish UI + hidden background song. -->
+  <script defer src="/spicy/spicy.js"></script>
 </body>
 </html>

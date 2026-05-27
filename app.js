@@ -3031,14 +3031,29 @@
     });
 
     const sortedBuildings = Object.keys(grouped).sort();
+    const maxBuildingCount = Math.max(
+      1,
+      ...sortedBuildings.map((building) =>
+        Object.values(grouped[building]).reduce((sum, count) => sum + Number(count || 0), 0)
+      )
+    );
     els.locksByBuilding.innerHTML = sortedBuildings
       .map((building) => {
         const counts = grouped[building];
+        const buildingTotal = Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0);
+        const buildingWidth = Math.max(8, Math.round((buildingTotal / maxBuildingCount) * 100));
         const colorRows = config.lockTypes
           .filter((type) => (counts[type.id] || 0) > 0)
           .map((type) => {
             const hex = colorHexFor(type.id);
-            return `<span class="color-count">${padlockIcon(hex)}<strong>${counts[type.id]}</strong> ${escapeHtml(type.summaryLabel)}</span>`;
+            const width = Math.max(8, Math.round((counts[type.id] / buildingTotal) * buildingWidth));
+            return `
+              <span class="color-count">
+                ${padlockIcon(hex)}
+                <strong>${counts[type.id]}</strong>
+                <span class="count-bar" aria-hidden="true"><span style="--bar-width: ${width}%; --bar-color: ${escapeHtml(hex)};"></span></span>
+              </span>
+            `;
           })
           .join("");
         return `
@@ -3068,8 +3083,22 @@
     });
 
     const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const maxCount = Math.max(1, ...rows.map(([, count]) => count));
     els.locksByDepartmentBody.innerHTML = rows
-      .map(([dept, count]) => `<tr><td>${escapeHtml(dept)}</td><td>${count}</td></tr>`)
+      .map(([dept, count]) => {
+        const width = Math.max(8, Math.round((count / maxCount) * 100));
+        return `
+          <tr>
+            <td>${escapeHtml(dept)}</td>
+            <td>
+              <div class="table-metric">
+                <strong>${count}</strong>
+                <span class="count-bar" aria-hidden="true"><span style="--bar-width: ${width}%;"></span></span>
+              </div>
+            </td>
+          </tr>
+        `;
+      })
       .join("");
   }
 
