@@ -23,40 +23,40 @@
         <button type="button" class="btn-muted" id="authModeSignUp" role="tab" aria-selected="false">Sign Up</button>
       </div>
 
-      <form id="loginForm" autocomplete="off">
+      <form id="loginForm">
         <label class="login-field">
           Email / Admin
-          <input id="loginEmail" type="text" required autofocus autocapitalize="off" spellcheck="false" placeholder="user@domain.com or Admin">
+          <input id="loginEmail" type="text" required autofocus autocapitalize="off" spellcheck="false" autocomplete="username" placeholder="user@domain.com or Admin">
         </label>
         <label class="login-field">
           Password
-          <input id="loginPassword" type="password" required>
+          <input id="loginPassword" type="password" required autocomplete="current-password">
         </label>
         <button type="submit" class="btn-primary login-btn">Sign In</button>
       </form>
 
-      <form id="signupForm" autocomplete="off" hidden>
+      <form id="signupForm" hidden>
         <label class="login-field">
           Full Name
-          <input id="signupName" required placeholder="First Last">
+          <input id="signupName" required autocomplete="name" placeholder="First Last">
         </label>
         <label class="login-field">
           Email
-          <input id="signupEmail" type="email" required>
+          <input id="signupEmail" type="email" required autocomplete="email">
         </label>
         <label class="login-field">
           Password
-          <input id="signupPassword" type="password" required placeholder="12+ chars, upper/lower/number/symbol">
+          <input id="signupPassword" type="password" required minlength="12" autocomplete="new-password" placeholder="12+ chars, upper/lower/number/symbol">
         </label>
         <label class="login-field">
           Confirm Password
-          <input id="signupConfirmPassword" type="password" required>
+          <input id="signupConfirmPassword" type="password" required minlength="12" autocomplete="new-password">
         </label>
         <label class="login-field">
           Requested User Group
           <select id="signupRole" required></select>
         </label>
-        <p class="login-note">Role requests above Authorized User require Super Admin approval.</p>
+        <p class="login-note">New accounts receive Authorized User access. Elevated user-group requests require Super Admin approval.</p>
         <button type="submit" class="btn-primary login-btn">Create Account</button>
       </form>
 

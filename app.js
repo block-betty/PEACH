@@ -3,6 +3,7 @@
   const STORAGE_KEY = config.storageKey;
   const SESSION_KEY = config.sessionKey;
   const SESSION_USER_KEY = `${SESSION_KEY}:user`;
+  const SESSION_AUTH_TOKEN_KEY = `${SESSION_KEY}:token`;
   const API_BASE_PATH = config.apiBasePath;
   const SYNC_POLL_MS = config.syncPollMs;
   const DEFAULT_ROLE = config.defaultRole;
@@ -44,6 +45,7 @@
       "view_dashboard",
       "create_lock_event",
       "edit_lock_event",
+      "delete_lock_event",
       "manage_equipment_create",
       "manage_equipment_edit",
       "manage_lock_master_create",
@@ -1285,13 +1287,15 @@
     showAuthMode("signin");
 
     const rawSession = sessionStorage.getItem(SESSION_USER_KEY);
-    if (rawSession) {
+    const sessionToken = sessionStorage.getItem(SESSION_AUTH_TOKEN_KEY);
+    if (rawSession && sessionToken) {
       try {
         const parsed = JSON.parse(rawSession);
         applyAuthenticatedUser(parsed, false);
         hideOverlay();
       } catch {
         sessionStorage.removeItem(SESSION_USER_KEY);
+        sessionStorage.removeItem(SESSION_AUTH_TOKEN_KEY);
       }
     }
 
@@ -1312,7 +1316,7 @@
 
       try {
         const payload = await localAuthRequest("/auth/login", { email, password });
-        applyAuthenticatedUser(payload.user, true);
+        applyAuthenticatedUser(payload.user, true, payload.sessionToken);
         hideOverlay();
       } catch (error) {
         setAuthError(formatLocalAuthError(error));
@@ -1370,7 +1374,11 @@
           if (els.loginPassword) {
             els.loginPassword.value = "";
           }
-          setAuthInfo("Account created. Sign in with your new credentials.");
+          const roleMessage =
+            requestedRole === DEFAULT_ROLE
+              ? "Account created. Sign in with your new credentials."
+              : "Account created with Authorized User access. Elevated role request is pending Super Admin approval.";
+          setAuthInfo(roleMessage);
           els.signupForm.reset();
           renderSignupRoleOptions();
         } catch (error) {
@@ -1393,6 +1401,8 @@
       updateCurrentUserLabel("Not signed in", "");
       sessionStorage.removeItem(SESSION_KEY);
       sessionStorage.removeItem(SESSION_USER_KEY);
+      sessionStorage.removeItem(SESSION_AUTH_TOKEN_KEY);
+      stopCentralSync();
       stopFirebaseStateSync();
       showOverlay();
     });
@@ -1555,6 +1565,7 @@
         await firebaseCtx.auth.signOut();
       } else {
         sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_AUTH_TOKEN_KEY);
         showOverlay();
       }
     });
@@ -1713,7 +1724,15 @@
       return;
     }
     const roleLabel = roleId ? ROLE_LABELS[roleId] || roleId : "";
-    els.currentUserLabel.textContent = roleLabel ? `${name} (${roleLabel})` : name;
+    const displayName = String(name || "").trim() || "Signed in";
+    const email = String(currentAuthUser?.email || "").trim();
+    const identity =
+      email && email.toLowerCase() !== displayName.toLowerCase()
+        ? `${displayName} | ${email}`
+        : displayName;
+    els.currentUserLabel.textContent = roleLabel
+      ? `Signed in: ${identity} | ${roleLabel}`
+      : identity;
   }
 
   function validatePasswordStrength(password) {
@@ -1777,7 +1796,7 @@
     return String(error?.message || "Authentication request failed.");
   }
 
-  function applyAuthenticatedUser(userProfile, logAudit) {
+  function applyAuthenticatedUser(userProfile, logAudit, sessionToken) {
     const normalized = {
       id: String(userProfile?.id || ""),
       email: String(userProfile?.email || ""),
@@ -1793,6 +1812,9 @@
     authReadyForData = true;
     sessionStorage.setItem(SESSION_KEY, "1");
     sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(normalized));
+    if (sessionToken) {
+      sessionStorage.setItem(SESSION_AUTH_TOKEN_KEY, String(sessionToken));
+    }
     applyRolePermissions(currentAuthRole);
     updateCurrentUserLabel(normalized.displayName || normalized.email || "Signed in", currentAuthRole);
     if (logAudit) {
@@ -3508,6 +3530,9 @@
     if (!API_BASE_PATH) {
       return;
     }
+    if (!authReadyForData) {
+      return;
+    }
     void (async () => {
       const remote = await fetchCentralState();
       if (remote) {
@@ -3522,6 +3547,9 @@
 
   function startCentralPolling() {
     if (!API_BASE_PATH) {
+      return;
+    }
+    if (!authReadyForData) {
       return;
     }
     if (syncTimer) {
@@ -3576,10 +3604,26 @@
     firebaseStateListener = null;
   }
 
+  function stopCentralSync() {
+    if (syncTimer) {
+      clearInterval(syncTimer);
+      syncTimer = null;
+    }
+    serverVersion = null;
+    saveInFlight = false;
+    saveQueued = false;
+  }
+
   async function fetchCentralState() {
     try {
-      const response = await fetch(`${API_BASE_PATH}/state`, { cache: "no-store" });
+      const response = await fetch(`${API_BASE_PATH}/state`, {
+        cache: "no-store",
+        headers: centralAuthHeaders()
+      });
       if (!response.ok) {
+        if (response.status === 401) {
+          clearLocalSessionAfterAuthFailure();
+        }
         return null;
       }
       const payload = await response.json();
@@ -3597,6 +3641,9 @@
 
   function queueCentralSave() {
     if (!API_BASE_PATH) {
+      return;
+    }
+    if (!authReadyForData) {
       return;
     }
     if (saveInFlight) {
@@ -3641,7 +3688,8 @@
       const response = await fetch(`${API_BASE_PATH}/state`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...centralAuthHeaders()
         },
         body: JSON.stringify({
           expectedVersion: serverVersion,
@@ -3665,6 +3713,9 @@
       }
 
       if (!response.ok) {
+        if (response.status === 401) {
+          clearLocalSessionAfterAuthFailure();
+        }
         return;
       }
 
@@ -3686,6 +3737,25 @@
         void pushCentralState(actorName);
       }
     }
+  }
+
+  function centralAuthHeaders() {
+    const token = sessionStorage.getItem(SESSION_AUTH_TOKEN_KEY);
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  function clearLocalSessionAfterAuthFailure() {
+    authReadyForData = false;
+    currentAuthRole = "";
+    currentAuthUser = null;
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_USER_KEY);
+    sessionStorage.removeItem(SESSION_AUTH_TOKEN_KEY);
+    stopCentralSync();
+    applyRolePermissions("");
+    updateCurrentUserLabel("Not signed in", "");
+    showOverlay();
+    setAuthError("Session expired. Sign in again.");
   }
 
   function mergeStateSnapshots(remoteState, localState) {
@@ -3734,14 +3804,18 @@
       const resolvedRole = isBootstrapSuperAdmin(user.email)
         ? "super_admin"
         : normalizeRole(existing.role || DEFAULT_ROLE);
+      const requestedExistingRole = normalizeRole(existing.requestedRole || requested);
+      const existingApprovalStatus =
+        existing.approvalStatus ||
+        (requestedExistingRole === DEFAULT_ROLE ? "approved" : "pending_approval");
       await firebaseCtx.db.ref(usersPath).update({
         email: user.email || existing.email || "",
         displayName: requestedName || user.displayName || existing.displayName || "",
         role: resolvedRole,
-        requestedRole: existing.requestedRole || requested,
+        requestedRole: requestedExistingRole,
         approvalStatus: isBootstrapSuperAdmin(user.email)
           ? "approved"
-          : existing.approvalStatus || "approved",
+          : existingApprovalStatus,
         updatedAt: now,
         lastLoginAt: now
       });
@@ -3751,7 +3825,7 @@
         displayName: requestedName || user.displayName || existing.displayName || "",
         approvalStatus: isBootstrapSuperAdmin(user.email)
           ? "approved"
-          : existing.approvalStatus || "approved"
+          : existingApprovalStatus
       };
     }
 
